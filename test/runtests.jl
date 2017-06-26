@@ -3,7 +3,7 @@ using Base.Test
 
 tests = [
         "green",
-        #"periodize",
+        "periodize",
         "sigmadc"
         ]
 

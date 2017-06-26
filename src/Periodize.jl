@@ -45,11 +45,11 @@ function build_cumulants(wvec::Array{Float64, 1}, mu::Float64, sEvec_c::Array{Co
 
       cumulants = zeros(Complex{Float64}, size(sEvec_c))
 
-      for (zz, sE) in zip(wvec, sEvec_c, cumulants)
+      for (ii, ww) in enumerate(wvec)
           tmp = zeros(Complex{Float64}, (4, 4))
-          tmp[1, 1] = tmp[2, 2] = tmp[3, 3] = tmp[4, 4] = (zz + mu)
-          tmp -= sE
-          cumulant = inv(tmp)
+          tmp[1, 1] = tmp[2, 2] = tmp[3, 3] = tmp[4, 4] = (ww + mu)
+          tmp -= sEvec_c[ii, :, :]
+          cumulants[ii, :, :] = inv(tmp)
       end
 
       return cumulants
@@ -59,7 +59,13 @@ end
 type Model
     t_::Float64  ; tp_::Float64 ; mu_::Float64
     w_::Float64 ; sE_::Array{Complex{Float64}, 2}
-    #cumulant_::Array{Complex{Float64}, 2}
+    cumulant_::Array{Complex{Float64}, 2}
+    
+    function Model(modelvec::ModelVector, ii::Integer)
+        (t, tp, mu, w, sE_c, cumulant) = (modelvec.t_, modelvec.tp_, modelvec.mu_, modelvec.wvec_[ii], modelvec.sEvec_c_[ii, :, :], modelvec.cumulants_[ii, :, :])
+        return new(t, tp, mu, w, sE_c, cumulant)
+    end
+
 end
 
 
@@ -96,16 +102,12 @@ end
 
 
 function build_gf_ktilde(model::Model, kx::Float64, ky::Float64)
-
-    w = model.w_ ; mu = model.mu_ ; sE = model.sE_
-    return inv((w + mu) * II - t_value(model, kx, ky) - sE)
+    return inv((model.w_ + model.mu_) * II - t_value(model, kx, ky) - model.sE_)
 end
 
 
 function build_gf_ktilde_inverse(model::Model, kx::Float64, ky::Float64)
-
-    w = Model.w_ ; mu = Model.mu_ ; sE = model.sE_
-    return( (w + mu) * II - t_value(model, kx, ky) - sE)
+    return( (model.w_ + model.mu_) * II - t_value(model, kx, ky) - model.sE_)
 end
 
 
@@ -132,8 +134,7 @@ end
 
 
 function eps_0(model::Model, kx::Float64, ky::Float64)
-    t = model.t_ ; tp = model.tp_
-    return (-2.0*t*(cos(kx) + cos(ky)) - 2.0*tp*cos(kx + ky) )
+    return (-2.0*model.t_*(cos(kx) + cos(ky)) - 2.0*model.tp_*cos(kx + ky) )
 end
 
 
@@ -148,9 +149,6 @@ function hopping_test(model::Model, kx::Float64, ky::Float64)
     for i in 1:N_c
         for j in 1:N_c
             for K in K_sites
-              #println("size(K) = ", size(K))
-              #println("size(k) = ", size(k))
-              #println("size r_sites[i] = ", size(r_sites[j]))
                 t_array[i, j] += 1.0/N_c * exp(1.0im*dot(K + k, r_sites[i] - r_sites[j])) * eps_0(model, (K + k)...)
             end
         end
@@ -162,32 +160,33 @@ end
 
 
 function calcdos(modelvector::ModelVector; fout_name::String="dos.dat", maxevals::Int64=0)
-    sEvec_c = modelvector.sEvec_c_; wvec = real(modelvector.wvec_); t = modelvector.t_ ; tp = modelvector.tp_; mu = modelvector.mu_
-    len_sEvec_c = size(sEvec_c)[1]
+    
+    len_sEvec_c = size(modelvector.sEvec_c_)[1]
     dos = zeros(Float64, len_sEvec_c)
 
     for n in 1:len_sEvec_c
         #println("IN LOOP of dos # ", n, " out of ", len_sEvec_c)
-        model = Model(t, tp, mu, wvec[n], sEvec_c[n, :, :])
+        model = Model(modelvector, n)
         dos[n] = (2.0*pi)^(-2.0)*hcubature(make_periodize(model), (-pi, -pi), (pi, pi), reltol=1e-8, abstol=1e-8, maxevals=maxevals)[1]
     end
-    dos_out = hcat(wvec, dos)
+    dos_out = hcat(modelvector.wvec_, dos)
     writedlm(fout_name, dos_out, " ")
     return dos
+
 end
 
 
 function calcdos2(modelvector::ModelVector; fout_name::String="dos2.dat", maxevals::Int64=0)
-    sEvec_c = modelvector.sEvec_c_; wvec = real(modelvector.wvec_); t = modelvector.t_ ; tp = modelvector.tp_; mu = modelvector.mu_
-    len_sEvec_c = size(sEvec_c)[1]
+
+    len_sEvec_c = size(modelvector.sEvec_c_)[1]
     dos2 = zeros(Float64, len_sEvec_c)
 
     for n in 1:len_sEvec_c
         #println("IN LOOP of dos # ", n, " out of ", len_sEvec_c)
-        model = Model(t, tp, mu, wvec[n], sEvec_c[n, :, :])
+        model = Model(modelvector, n)
         dos2[n] = (2.0*pi)^(-2.0)*hcubature(make_akw2(model), (-pi, -pi), (pi, pi), reltol=1.49e-8, abstol=1.49e-8, maxevals=maxevals)[1]
     end
-    dos2_out = hcat(wvec, dos2)
+    dos2_out = hcat(modelvector.wvec_, dos2)
     writedlm(fout_name, dos2_out, " ")
     return dos2_out
 end

@@ -1,16 +1,12 @@
-# push!(LOAD_PATH, pwd())
-# #println( pwd() )
-# #println(LOAD_PATH)
-# using Base.Test
+using Base.Test
+using Mea.Green
+using Mea.Periodize
+using JSON
 
-# include("green.jl")
-# include("periodize.jl")
-# using Green
-# using Periodize
-# import JSON
 
-# self_ctow_name = ARGS[1]
-# fout_name = ARGS[2]
+@testset "Testing Periodize.jl" begin
+
+    #setup
 # #self_ctow_name = "self_ctow0_b12n0.495tp0.4U6.25.dat"
 
 # (w_vec, sEvec_cw) = Green.readgreen_c(self_ctow_name, 1)
@@ -27,54 +23,116 @@
 # #Periodize.
 # Periodize.calcdos(modelvec, fout_name=fout_name)
 
+#setup
 
-using Base.Test
+    fin_gf_to = "./data/self_ctow.dat"
+    paramsfile = "./data/statsparams0.json"
+    modelvec = Periodize.buildmodelvec(fin_gf_to, paramsfile)
 
-@testset "Testing Periodize.jl" begin
- println("Passing for now.")
-#     # set up
-#     phi = [.95, -.4, -.4]
-#     theta = zeros(3)
-#     sigma = .15
-#     lp = ARMA(phi, theta, sigma)
 
-#     # test simulate
-#     sim = simulation(lp, ts_length=250)
-#     @test length(sim) == 250
+    
+    @testset "test_init" begin
 
-#     # test impulse response
-#     imp_resp = impulse_response(lp, impulse_length=75)
-#     @test length(imp_resp) == 75
+         @test isapprox(modelvec.t_, 1.0)
+         @test isapprox(modelvec.tp_, 0.40)
+         @test isapprox(modelvec.mu_, 3.1736422868580827)
+         @test isapprox(modelvec.wvec_[1:2], [-9.737999999999999545e+01, -5.046000000000000085e+01])
+         
+         model = Periodize.Model(modelvec, 1)
+         cumulant = inv((model.w_ + model.mu_)*eye(Complex{Float64}, 4) - model.sE_)
 
-#     @testset "test constructors" begin
-#         phi = 0.5
-#         theta = 0.4
-#         sigma = 0.15
+         @test isapprox(model.t_, 1.0)
+         @test isapprox(model.tp_, 0.4)
+         @test isapprox(model.mu_, modelvec.mu_)
+         @test isapprox(model.w_, -9.737999999999999545e+01)
+         @test isapprox(cumulant, model.cumulant_)
+         @test isapprox(cumulant, modelvec.cumulants_[1,:,:])
 
-#         a1 = ARMA(phi, theta, sigma)
-#         a2 = ARMA([phi;], theta, sigma)
-#         a3 = ARMA(phi, [theta;], sigma)
+    end
 
-#         for nm in fieldnames(a1)
-#             @test getfield(a1, nm) == getfield(a2, nm)
-#             @test getfield(a1, nm) == getfield(a3, nm)
-#         end
-#     end
 
-#     @testset "test autocovariance" begin
-#         θ = 0.5
-#         σ = 0.15
-#         ma1 = ARMA(Float64[], [θ], σ)
-#         ac = autocovariance(ma1; num_autocov=5)
+    @testset "test_t_value" begin
 
-#         # first is the variance. equal to (1 + θ^2) sigma^2
-#         @test isapprox(ac[1], (1+θ^2)*σ^2; atol=1e-3)
+        model = Periodize.Model(modelvec, 1)
+        (kx , ky) = (rand(), -rand())
+        t_value = Periodize.t_value(model, kx, ky)
+        hop_test = Periodize.hopping_test(model, kx, ky)
+        @test isapprox(t_value, hop_test)
+    end
 
-#         # second should be θ σ^2
-#         @test isapprox(ac[2], θ*σ^2; atol=1e-3)
 
-#         # all others should be 0
-#         @test isapprox(ac[3:end], zeros(ac[3:end]); atol=1e-3)
-#     end
+    @testset "test_eps0" begin
+        model = Periodize.Model(modelvec, 1)
+        (kx, ky) = (0.3, -0.19)
+        eps0_value = Periodize.eps_0(model, kx, ky)
+        @test isapprox(eps0_value, -4.66985, atol=1e-4)
+    end
+
+    
+    @testset "test_exp_k" begin
+        model = Periodize.Model(modelvec, 1)
+        kx, ky = (0.3, -0.19)
+        exp_k_value = Periodize.exp_k(kx, ky)
+        real_value = [1.0, (0.955336 + 0.29552im), 
+                    (0.993956 + 0.109778im), (0.982004 - 0.188859im)]
+        
+        @test isapprox(exp_k_value, real_value, rtol=1e-4)
+    end
+
+    # def test_periodize_Akw(self):
+    #     """ """
+
+        
+    #     t, tp = (1.0, 0.4)
+    #     kx, ky = (0.122, -0.987)
+    #     k = np.array([kx,ky])
+    #     sE = np.random.rand(4, 4)
+    #     sEarr = np.array([sE], dtype=complex)
+    #     ww = random()
+    #     mu = random()
+    #     model = periodize.Model(t, tp, mu, np.array([ww]), sEarr)
+    #     N_c = 4
+    #     r_sites = np.array([[0.0, 0.0], [1.0,0.0], [1.0,1.0], [0.0,1.0]])
+    #     gf_ktilde = linalg.inv((ww + mu)*np.eye(4) - model.t_value(kx, ky) - sE)
+
+    #     gf_w_lattice = 0.0 + 0.0j
+
+    #     for i in range(N_c):
+    #         for j in range(N_c):
+    #             gf_w_lattice += 1/N_c * np.exp(-1.0j*np.dot(k, r_sites[i] - r_sites[j]) )*gf_ktilde[i, j]
+        
+    #     Akw = -2.0*gf_w_lattice.imag
+    #     Akw_test = model.periodize_Akw(kx, ky, 0)
+    #     Akw2 = (-2.0*gf_w_lattice.imag)**(2.0)
+    #     Akw2_test = (model.periodize_Akw2(kx, ky ,0))
+        
+    #     try:
+    #         test_tools.compare_arrays(Akw, Akw_test)
+    #         test_tools.compare_arrays(Akw2, Akw2_test)
+    #         np.testing.assert_allclose(Akw, Akw_test)
+    #         np.testing.assert_allclose(Akw2, Akw2_test)
+    #     except AssertionError:
+    #         self.fail("np all close failed at test_periodize_Akw")         
+
+
+
+    # def test_periodize_Gkz(self):
+    #     """ """
+    #     t, tp = (1.0, 0.4)
+    #     kx, ky = (0.122, -0.987)
+    #     sE = np.random.rand(4, 4)
+    #     sEarr = np.array([sE], dtype=complex)
+    #     ww = random()
+    #     mu = random()
+    #     model = periodize.Model(t, tp, mu, np.array([ww]), sEarr)
+    #     Akw = model.periodize_Akw(kx, ky, 0)
+    #     Akw_test = -2.0*model.periodize_Gkz_vec(kx, ky).imag
+
+    #     try:
+    #         self.assertAlmostEqual(Akw, Akw_test[0])
+    #     except AssertionError:
+    #         self.fail("np all close failed at test_periodize_Gkw")   
+
+
 
  end  # testset

@@ -10,7 +10,7 @@ module Green
 
 using Base.Test
 
-function readgreen_c(fin_gf_to::String, zn_col::Int = 1)
+function readgreen_c(fin_gf_to::String; zn_col::Int = 1)
 
     gf_to = readdlm(fin_gf_to)
 
@@ -110,17 +110,17 @@ function c_to_to(zn_vec::Array{Float64}, gf_c::Array{Complex{Float64}, 3})
     """convert from cluster form to tabular-out form """
     zn_vec = deepcopy(zn_vec) ; gf_c = deepcopy(gf_c)
     assert(size(zn_vec)[1] == size(gf_c)[1])
-    assert(size(gf_c)[2] == size(gf_c)[2]) ; assert(size(gf_c)[2] ==  size(gf_c)[3], 4 )
+    assert(size(gf_c)[2] == size(gf_c)[2]) ; assert(size(gf_c)[2] ==  size(gf_c)[3] == 4)
 
     gf_to = zeros(Float64, (size(zn_vec)[1], 11))
 
 
     gf_to[:, 1] = zn_vec
-    gf_to[:, 2] = gf_c[:, 1, 1].real ; gf_to[:, 3] = gf_c[:, 1, 1].imag
-    gf_to[:, 4] = gf_c[:, 2, 2].real ; gf_to[:, 5] = gf_c[:, 2, 2].imag
-    gf_to[:, 6] = gf_c[:, 1, 2].real ; gf_to[:, 7] = gf_c[:, 1, 2].imag
-    gf_to[:, 8] = gf_c[:, 1, 3].real ; gf_to[:, 9] = gf_c[:, 1, 3].imag
-    gf_to[:, 10] = gf_c[:, 2, 4].real ; gf_to[:, 11] = gf_c[:, 2, 4].imag
+    gf_to[:, 2] = real(gf_c[:, 1, 1]) ; gf_to[:, 3] = imag(gf_c[:, 1, 1])
+    gf_to[:, 4] = real(gf_c[:, 2, 2]) ; gf_to[:, 5] = imag(gf_c[:, 2, 2])
+    gf_to[:, 6] = real(gf_c[:, 1, 2]) ; gf_to[:, 7] = imag(gf_c[:, 1, 2])
+    gf_to[:, 8] = real(gf_c[:, 1, 3]) ; gf_to[:, 9] = imag(gf_c[:, 1, 3])
+    gf_to[:, 10] = real(gf_c[:, 2, 4]) ; gf_to[:, 11] = imag(gf_c[:, 2, 4])
 
     return gf_to
 end

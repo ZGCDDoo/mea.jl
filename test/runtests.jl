@@ -2,7 +2,7 @@ using Mea
 using Base.Test
 
 tests = [
-        #"green",
+        "green",
         #"periodize",
         "sigmadc"
         ]

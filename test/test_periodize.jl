@@ -79,59 +79,42 @@ using JSON
         @test isapprox(exp_k_value, real_value, rtol=1e-4)
     end
 
-    # def test_periodize_Akw(self):
-    #     """ """
 
+    @testset "test_periodize_Akw" begin
+        t, tp = (modelvec.t_, modelvec.tp_)
+        kx, ky = (0.0, pi/1.0)
+        k = [kx, ky]
+        ss = div(size(modelvec.sEvec_c_)[1], 2)
+        mu = modelvec.mu_
+        sE = modelvec.sEvec_c_[ss, :, :]
+        ww = modelvec.wvec_[ss]
+        model = Periodize.Model(modelvec, ss)
+        N_c = 4
+        r_sites = [[0.0, 0.0], [1.0,0.0], [1.0,1.0], [0.0,1.0]]
+        gf_ktilde = inv((ww + mu)*eye(Complex{Float64}, 4) - Periodize.t_value(model, kx, ky) - sE)
+        gf_w_lattice = 0.0 + 0.0im
+
+        for i in 1:N_c
+            for j in 1:N_c
+                gf_w_lattice += 1.0/N_c * exp(-1.0im*dot(k, r_sites[i] - r_sites[j]) )*gf_ktilde[i, j]
+            end
+        end
+
+       Akw = -2.0*imag(gf_w_lattice)
+       Akw_test = Periodize.make_periodize(model)(k)
+    
+        Akw2 = (-2.0*imag(gf_w_lattice))^(2.0)
+        Akw2_test = Periodize.make_akw2(model)(k)
         
-    #     t, tp = (1.0, 0.4)
-    #     kx, ky = (0.122, -0.987)
-    #     k = np.array([kx,ky])
-    #     sE = np.random.rand(4, 4)
-    #     sEarr = np.array([sE], dtype=complex)
-    #     ww = random()
-    #     mu = random()
-    #     model = periodize.Model(t, tp, mu, np.array([ww]), sEarr)
-    #     N_c = 4
-    #     r_sites = np.array([[0.0, 0.0], [1.0,0.0], [1.0,1.0], [0.0,1.0]])
-    #     gf_ktilde = linalg.inv((ww + mu)*np.eye(4) - model.t_value(kx, ky) - sE)
+        @test isapprox(Akw, Akw_test)
+        @test isapprox(Akw2, Akw2_test)
+        @test isapprox(Akw, Akw_test)
+        @test isapprox(Akw2, Akw2_test)
 
-    #     gf_w_lattice = 0.0 + 0.0j
+    end
 
-    #     for i in range(N_c):
-    #         for j in range(N_c):
-    #             gf_w_lattice += 1/N_c * np.exp(-1.0j*np.dot(k, r_sites[i] - r_sites[j]) )*gf_ktilde[i, j]
-        
-    #     Akw = -2.0*gf_w_lattice.imag
-    #     Akw_test = model.periodize_Akw(kx, ky, 0)
-    #     Akw2 = (-2.0*gf_w_lattice.imag)**(2.0)
-    #     Akw2_test = (model.periodize_Akw2(kx, ky ,0))
-        
-    #     try:
-    #         test_tools.compare_arrays(Akw, Akw_test)
-    #         test_tools.compare_arrays(Akw2, Akw2_test)
-    #         np.testing.assert_allclose(Akw, Akw_test)
-    #         np.testing.assert_allclose(Akw2, Akw2_test)
-    #     except AssertionError:
-    #         self.fail("np all close failed at test_periodize_Akw")         
-
-
-
-    # def test_periodize_Gkz(self):
-    #     """ """
-    #     t, tp = (1.0, 0.4)
-    #     kx, ky = (0.122, -0.987)
-    #     sE = np.random.rand(4, 4)
-    #     sEarr = np.array([sE], dtype=complex)
-    #     ww = random()
-    #     mu = random()
-    #     model = periodize.Model(t, tp, mu, np.array([ww]), sEarr)
-    #     Akw = model.periodize_Akw(kx, ky, 0)
-    #     Akw_test = -2.0*model.periodize_Gkz_vec(kx, ky).imag
-
-    #     try:
-    #         self.assertAlmostEqual(Akw, Akw_test[0])
-    #     except AssertionError:
-    #         self.fail("np all close failed at test_periodize_Gkw")   
+    @testset "caldos" begin
+    end
 
 
 

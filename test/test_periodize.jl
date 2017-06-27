@@ -30,14 +30,14 @@ using JSON
     modelvec = Periodize.buildmodelvec(fin_gf_to, paramsfile)
 
 
-    
+
     @testset "test_init" begin
 
          @test isapprox(modelvec.t_, 1.0)
          @test isapprox(modelvec.tp_, 0.40)
          @test isapprox(modelvec.mu_, 3.1736422868580827)
          @test isapprox(modelvec.wvec_[1:2], [-9.737999999999999545e+01, -5.046000000000000085e+01])
-         
+
          model = Periodize.Model(modelvec, 1)
          cumulant = inv((model.w_ + model.mu_)*eye(Complex{Float64}, 4) - model.sE_)
 
@@ -68,14 +68,14 @@ using JSON
         @test isapprox(eps0_value, -4.66985, atol=1e-4)
     end
 
-    
+
     @testset "test_exp_k" begin
         model = Periodize.Model(modelvec, 1)
         kx, ky = (0.3, -0.19)
         exp_k_value = Periodize.exp_k(kx, ky)
-        real_value = [1.0, (0.955336 + 0.29552im), 
+        real_value = [1.0, (0.955336 + 0.29552im),
                     (0.993956 + 0.109778im), (0.982004 - 0.188859im)]
-        
+
         @test isapprox(exp_k_value, real_value, rtol=1e-4)
     end
 
@@ -101,11 +101,11 @@ using JSON
         end
 
        Akw = -2.0*imag(gf_w_lattice)
-       Akw_test = Periodize.make_periodize(model)(k)
-    
+       Akw_test = Periodize.make_akw(model)(k)
+
         Akw2 = (-2.0*imag(gf_w_lattice))^(2.0)
         Akw2_test = Periodize.make_akw2(model)(k)
-        
+
         @test isapprox(Akw, Akw_test)
         @test isapprox(Akw2, Akw2_test)
         @test isapprox(Akw, Akw_test)

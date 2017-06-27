@@ -18,7 +18,7 @@ function buildmodelvec(finsE::String, finparams::String)
     t = 1.0
     tp = params["tp"][1]
     mu = params["mu"][1]
-    (wvec, sEvec_c) = Green.readgreen_c(finsE)    
+    (wvec, sEvec_c) = Green.readgreen_c(finsE)
     return ModelVector(t, tp, mu, wvec, sEvec_c)
 end
 
@@ -60,7 +60,7 @@ type Model
     t_::Float64  ; tp_::Float64 ; mu_::Float64
     w_::Float64 ; sE_::Array{Complex{Float64}, 2}
     cumulant_::Array{Complex{Float64}, 2}
-    
+
     function Model(modelvec::ModelVector, ii::Integer)
         (t, tp, mu, w, sE_c, cumulant) = (modelvec.t_, modelvec.tp_, modelvec.mu_, modelvec.wvec_[ii], modelvec.sEvec_c_[ii, :, :], modelvec.cumulants_[ii, :, :])
         return new(t, tp, mu, w, sE_c, cumulant)
@@ -101,38 +101,6 @@ function exp_k(kx::Float64, ky::Float64)
 end
 
 
-function build_gf_ktilde(model::Model, kx::Float64, ky::Float64)
-    return inv((model.w_ + model.mu_) * II - t_value(model, kx, ky) - model.sE_)
-end
-
-
-function build_gf_ktilde_inverse(model::Model, kx::Float64, ky::Float64)
-    return( (model.w_ + model.mu_) * II - t_value(model, kx, ky) - model.sE_)
-end
-
-
-function make_periodize(model::Model)
-  function periodize_Akw(kk::Array{Float64, 1}) # periodize the imaginary part (Ak_w)
-
-      (kx, ky) = kk
-      N_c = 4.0
-      gf_ktilde = build_gf_ktilde(model, kx, ky)
-      expk = exp_k(kx, ky)
-      return imag(-2.0/N_c * dot(expk, (gf_ktilde * expk)) )
-  end
-  return periodize_Akw
-end
-
-
-function make_akw2(model::Model)
-    function akw2(kk)
-        akw = make_periodize(model)
-        return (akw(kk)^2.0)
-    end
-    return akw2
-end
-
-
 function eps_0(model::Model, kx::Float64, ky::Float64)
     return (-2.0*model.t_*(cos(kx) + cos(ky)) - 2.0*model.tp_*cos(kx + ky) )
 end
@@ -159,15 +127,80 @@ function hopping_test(model::Model, kx::Float64, ky::Float64)
 end
 
 
+function build_gf_ktilde(model::Model, kx::Float64, ky::Float64)
+    return inv((model.w_ + model.mu_) * II - t_value(model, kx, ky) - model.sE_)
+end
+
+
+function build_gf_ktilde_inverse(model::Model, kx::Float64, ky::Float64)
+    return( (model.w_ + model.mu_) * II - t_value(model, kx, ky) - model.sE_)
+end
+
+
+function periodize(arg::Array{Complex{Float64}, 2}, kx::Float64, ky::Float64)
+    N_c = 4.0
+    expk = exp_k(kx, ky)
+    return (1.0/N_c * dot(expk, (arg * expk)) )
+end
+
+
+function make_akw(model::Model)
+  function akw(kk::Array{Float64, 1}) # periodize the imaginary part (Ak_w)
+
+      (kx, ky) = kk
+      N_c = 4.0
+      gf_ktilde = build_gf_ktilde(model, kx, ky)
+      #expk = exp_k(kx, ky)
+      #return imag(-2.0/N_c * dot(expk, (gf_ktilde * expk)) )
+      return imag(-2.0*periodize(gf_ktilde, kk[1], kk[2]))
+  end
+  return akw
+end
+
+
+function make_akwcum(model::Model)
+  function akwcum(kk::Array{Float64, 1}) # periodize the imaginary part (Ak_w)
+
+      (kx, ky) = kk
+      N_c = 4.0
+      cump = periodize(model.cumulant, kk[1], kk[2])
+      return imag(-2.0*inv(inv(cump) - eps_0(kk[1], kk[2])))
+  end
+  return akwcum
+end
+
+
+
+function make_akw2(model::Model)
+    function akw2(kk::Array{Float64, 1})
+        akw = make_akw(model)
+        return (akw(kk)^2.0)
+    end
+    return akw2
+end
+
+
+function make_akw2cum(model::Model)
+    function akw2cum(kk::Array{Float64, 1})
+        akwcum = make_akwcum(model)
+        return (akwcum(kk)^2.0)
+    end
+    return akw2cum
+end
+
+
+
+
+
 function calcdos(modelvector::ModelVector; fout_name::String="dos.dat", maxevals::Int64=0)
-    
+
     len_sEvec_c = size(modelvector.sEvec_c_)[1]
     dos = zeros(Float64, len_sEvec_c)
 
     for n in 1:len_sEvec_c
         #println("IN LOOP of dos # ", n, " out of ", len_sEvec_c)
         model = Model(modelvector, n)
-        dos[n] = (2.0*pi)^(-2.0)*hcubature(make_periodize(model), (-pi, -pi), (pi, pi), reltol=1e-8, abstol=1e-8, maxevals=maxevals)[1]
+        dos[n] = (2.0*pi)^(-2.0)*hcubature(make_akw(model), (-pi, -pi), (pi, pi), reltol=1e-8, abstol=1e-8, maxevals=maxevals)[1]
     end
     dos_out = hcat(modelvector.wvec_, dos)
     writedlm(fout_name, dos_out, " ")
@@ -188,6 +221,22 @@ function calcdos2(modelvector::ModelVector; fout_name::String="dos2.dat", maxeva
     end
     dos2_out = hcat(modelvector.wvec_, dos2)
     writedlm(fout_name, dos2_out, " ")
+    return dos2_out
+end
+
+
+function calcintegral(modelvector::ModelVector, fct; fout_name::String="out.dat", maxevals::Int64=0)
+
+    len_sEvec_c = size(modelvector.sEvec_c_)[1]
+    result = zeros(Float64, len_sEvec_c)
+
+    for n in 1:len_sEvec_c
+        model = Model(modelvector, n)
+        result[n] = (2.0*pi)^(-2.0)*hcubature(fct(model), (-pi, -pi), (pi, pi), reltol=1.49e-8, abstol=1.49e-8, maxevals=maxevals)[1]
+    end
+
+    result_out = hcat(modelvector.wvec_, result)
+    writedlm(fout_name, result_out, " ")
     return dos2_out
 end
 

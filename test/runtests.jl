@@ -4,7 +4,8 @@ using Base.Test
 tests = [
         "green",
         "periodize",
-        "sigmadc"
+        "sigmadc",
+        "transport"
         ]
 
 

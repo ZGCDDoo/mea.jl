@@ -189,47 +189,12 @@ function make_akw2cum(model::Model)
 end
 
 
-
-
-
-function calcdos(modelvector::ModelVector; fout_name::String="dos.dat", maxevals::Int64=0)
-
-    len_sEvec_c = size(modelvector.sEvec_c_)[1]
-    dos = zeros(Float64, len_sEvec_c)
-
-    for n in 1:len_sEvec_c
-        #println("IN LOOP of dos # ", n, " out of ", len_sEvec_c)
-        model = Model(modelvector, n)
-        dos[n] = (2.0*pi)^(-2.0)*hcubature(make_akw(model), (-pi, -pi), (pi, pi), reltol=1e-8, abstol=1e-8, maxevals=maxevals)[1]
-    end
-    dos_out = hcat(modelvector.wvec_, dos)
-    writedlm(fout_name, dos_out, " ")
-    return dos
-
-end
-
-
-function calcdos2(modelvector::ModelVector; fout_name::String="dos2.dat", maxevals::Int64=0)
-
-    len_sEvec_c = size(modelvector.sEvec_c_)[1]
-    dos2 = zeros(Float64, len_sEvec_c)
-
-    for n in 1:len_sEvec_c
-        #println("IN LOOP of dos # ", n, " out of ", len_sEvec_c)
-        model = Model(modelvector, n)
-        dos2[n] = (2.0*pi)^(-2.0)*hcubature(make_akw2(model), (-pi, -pi), (pi, pi), reltol=1.49e-8, abstol=1.49e-8, maxevals=maxevals)[1]
-    end
-    dos2_out = hcat(modelvector.wvec_, dos2)
-    writedlm(fout_name, dos2_out, " ")
-    return dos2_out
-end
-
-
 function calcintegral(modelvector::ModelVector, fct; fout_name::String="out.dat", maxevals::Int64=0)
 
     len_sEvec_c = size(modelvector.sEvec_c_)[1]
     result = zeros(Float64, len_sEvec_c)
 
+    #fct = getfield(Mea.Periodize, Symbol(fctname))
     for n in 1:len_sEvec_c
         model = Model(modelvector, n)
         result[n] = (2.0*pi)^(-2.0)*hcubature(fct(model), (-pi, -pi), (pi, pi), reltol=1.49e-8, abstol=1.49e-8, maxevals=maxevals)[1]
@@ -237,8 +202,20 @@ function calcintegral(modelvector::ModelVector, fct; fout_name::String="out.dat"
 
     result_out = hcat(modelvector.wvec_, result)
     writedlm(fout_name, result_out, " ")
-    return dos2_out
+    return result_out
 end
+
+
+ function calcdos(modelvector::ModelVector; fout_name::String="dos.dat", maxevals::Int64=0)
+     dos_out = calcintegral(modelvector, make_akw, fout_name=fout_name, maxevals=maxevals)
+     return dos_out
+ end
+
+
+ function calcdos2(modelvector::ModelVector; fout_name::String="dos2.dat", maxevals::Int64=0)
+     dos2_out = calcintegral(modelvector, make_akw2, fout_name=fout_name, maxevals=maxevals)
+     return dos2_out
+ end
 
 
 end

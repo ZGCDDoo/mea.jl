@@ -8,11 +8,12 @@ function dfdw(beta::Float64, ww::Float64)
 end
 
 
-function vz2_int(kx::Float64, ky::Float64) #v_perp^2.0 integrated in z
+function vz2_int(kk::Array{Float64 ,1}) #v_perp^2.0 integrated in z
 
-    vz2_int = 2.0
-    #vz2_int = 2.0*(cos(kx) - cos(ky))^(4.0)
-    return vz2_int
+    (kx, ky) = (kk[1], kk[2])
+    result = 2.0
+    #result = 2.0*(cos(kx) - cos(ky))^(4.0)
+    return result
 end
 
 
@@ -65,9 +66,10 @@ function calc_l11(modelvec::Periodize.ModelVector, beta::Float64)
    end
 
    l11 /= beta
-println(l11)
-return l11
+   #println(l11)
+   return l11
 end
+
 
 function calc_l21(modelvec::Periodize.ModelVector, beta::Float64)
 
@@ -86,9 +88,10 @@ function calc_l21(modelvec::Periodize.ModelVector, beta::Float64)
    end
 
    l21 /= beta
-println(l21)
-return l21
+   #println(l21)
+    return l21
 end
+
 
 function calc_l22(modelvec::Periodize.ModelVector, beta::Float64)
 
@@ -107,19 +110,16 @@ function calc_l22(modelvec::Periodize.ModelVector, beta::Float64)
    end
 
    l22 /= beta
-println(l22)
-return l22
-
+   #println(l22)
+   return l22
 end
-#
-#
-#
-#
+
+
 function calc_sigmadc(modelvec::Periodize.ModelVector, beta::Float64)
 
-    sigmadc = calc_l11
+    sigmadc = beta*calc_l11(modelvec, beta)
     println(sigmadc)
-    return sigm
+    return sigmadc
 end
 
 end

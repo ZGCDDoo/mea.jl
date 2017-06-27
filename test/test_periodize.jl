@@ -80,7 +80,7 @@ using JSON
     end
 
 
-    @testset "test_periodize_Akw" begin
+    @testset "test_periodize_akw" begin
         t, tp = (modelvec.t_, modelvec.tp_)
         kx, ky = (0.0, pi/1.0)
         k = [kx, ky]

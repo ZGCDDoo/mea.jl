@@ -1,7 +1,7 @@
 module Transport
 
 using Mea.Periodize
-
+cutoffdefault=20.0
 
 function dfdw(beta::Float64, ww::Float64)
     return (-beta*exp(beta*ww)/(1.0 + exp(beta*ww))^2.0   )
@@ -18,10 +18,10 @@ end
 
 
 
-function calc_labk(modelvec::Periodize.ModelVector, beta::Float64) #calculate the k integral of the L_ab coeffiecient
+function calc_labk(modelvec::Periodize.ModelVector, beta::Float64; cutoff=cutoffdefault) #calculate the k integral of the L_ab coeffiecient
     #returns: Array{Float64, 1} size of w_vec that will be integrated in frequency
 
-  cutoff = 20.0
+  cutoff = cutoff
   cutoffidx=0
   for (ii, ww) in enumerate(modelvec.wvec_)
     if abs(ww*beta) < cutoff
@@ -52,9 +52,9 @@ function calc_labk(modelvec::Periodize.ModelVector, beta::Float64) #calculate th
 end
 
 
-function calc_l11(modelvec::Periodize.ModelVector, beta::Float64)
+function calc_l11(modelvec::Periodize.ModelVector, beta::Float64; cutoff=cutoffdefault)
 
-    integrand = calc_labk(modelvec, beta)
+    integrand = calc_labk(modelvec, beta, cutoff=cutoff)
     l11 = 0.0
 
     wvec = modelvec.wvec_
@@ -71,9 +71,9 @@ function calc_l11(modelvec::Periodize.ModelVector, beta::Float64)
 end
 
 
-function calc_l21(modelvec::Periodize.ModelVector, beta::Float64)
+function calc_l21(modelvec::Periodize.ModelVector, beta::Float64; cutoff=cutoffdefault)
 
-    integrand = calc_labk(modelvec, beta)
+    integrand = calc_labk(modelvec, beta, cutoff=cutoff)
     l21 = 0.0
     wvec = modelvec.wvec_
     assert(size(wvec) == size(integrand))
@@ -93,9 +93,9 @@ function calc_l21(modelvec::Periodize.ModelVector, beta::Float64)
 end
 
 
-function calc_l22(modelvec::Periodize.ModelVector, beta::Float64)
+function calc_l22(modelvec::Periodize.ModelVector, beta::Float64, cutoff=cutoffdefault)
 
-    integrand = calc_labk(modelvec, beta)
+    integrand = calc_labk(modelvec, beta, cutoff=cutoff)
     l22 = 0.0
     wvec = modelvec.wvec_
     assert(size(wvec) == size(integrand))
@@ -115,14 +115,17 @@ function calc_l22(modelvec::Periodize.ModelVector, beta::Float64)
 end
 
 
-function calc_sigmadc(modelvec::Periodize.ModelVector, beta::Float64)
+function calc_sigmadc(modelvec::Periodize.ModelVector, beta::Float64; cutoff=cutoffdefault)
 
-    sigmadc = beta*calc_l11(modelvec, beta)
-    println(sigmadc)
+    sigmadc = beta*calc_l11(modelvec, beta, cutoff=cutoff)
+    #println("sigmadc = ", sigmadc)
     return sigmadc
 end
 
-# function calc_seebeck(...)
+# function calc_seebeck(modelvec::Periodize.ModelVector, beta::Float64; cutoff=cutoffdefault)
+#   seebeck = -beta*calc_l21(modelvec, beta, cutoff=cutoff)/calc_l11(modelvec, beta, cutoff=cutoff)
+#   println("seebeck = ", seebeck)
+#   return seebeck    
 # end
 
 end

@@ -14,7 +14,7 @@ using JSON
     modelvec = Periodize.buildmodelvec(fin_gf_to, paramsfile)
 
     ss = div(size(modelvec.sEvec_c_)[1], 2)
-    println("ss = ", ss)
+    #println("ss = ", ss)
     (t, tp, mu) = (modelvec.t_, modelvec.tp_, modelvec.mu_)
     (wvec, sEvec_c) = (modelvec.wvec_[ss-1:ss], modelvec.sEvec_c_[ss-1:ss, :, :])
     modelvec_short = Periodize.ModelVector(t, tp, mu, wvec, sEvec_c)
@@ -106,22 +106,22 @@ using JSON
 
     @testset "caldos" begin
         dos = Periodize.calcdos(modelvec_short)
-        println("dos = ", dos)
+        #println("dos = ", dos)
         dos_good = [-1.199999999999999956e-01 8.584885659790794099e-01;
                     -1.000000000000000056e-01 8.741665043156163772e-01
                     ]
         
-        @test isapprox(dos, dos_good)
+        @test isapprox(dos, dos_good, atol=1e-4, rtol=1e-4)
 
     end
 
 
     @testset "caldos" begin
         dos2 = Periodize.calcdos2(modelvec_short)
-        println("dos2 = ", dos2)
+        #println("dos2 = ", dos2)
 
         dos2_good =  [-0.12 2.20879; -0.1 2.29901]
-        @test isapprox(dos2, dos2_good)
+        @test isapprox(dos2, dos2_good, atol=1e-4, rtol=1e-4)
 
     end
 

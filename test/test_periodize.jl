@@ -6,28 +6,18 @@ using JSON
 
 @testset "Testing Periodize.jl" begin
 
-    #setup
-# #self_ctow_name = "self_ctow0_b12n0.495tp0.4U6.25.dat"
-
-# (w_vec, sEvec_cw) = Green.readgreen_c(self_ctow_name, 1)
-
-# t = 1.0; tp = 0.4;
-# #mu = 3.173511234152317
-# mu = JSON.parsefile("statsparams0.json")["mu"][1]
-# modelvec = Periodize.ModelVector(t, tp, mu, w_vec, sEvec_cw)
-
-# model = Periodize.Model(t, tp, mu, w_vec[1], sEvec_cw[1,:,:])
-# tval = Periodize.t_value(model, 0.0, 0.0)
-# tval2 = Periodize.hopping_test(model, 0.0, 0.0)
-# @test isapprox(tval, tval2)
-# #Periodize.
-# Periodize.calcdos(modelvec, fout_name=fout_name)
 
 #setup
 
     fin_gf_to = "./data/self_ctow.dat"
     paramsfile = "./data/statsparams0.json"
     modelvec = Periodize.buildmodelvec(fin_gf_to, paramsfile)
+
+    ss = div(size(modelvec.sEvec_c_)[1], 2)
+    println("ss = ", ss)
+    (t, tp, mu) = (modelvec.t_, modelvec.tp_, modelvec.mu_)
+    (wvec, sEvec_c) = (modelvec.wvec_[ss-1:ss], modelvec.sEvec_c_[ss-1:ss, :, :])
+    modelvec_short = Periodize.ModelVector(t, tp, mu, wvec, sEvec_c)
 
 
 
@@ -113,7 +103,26 @@ using JSON
 
     end
 
+
     @testset "caldos" begin
+        dos = Periodize.calcdos(modelvec_short)
+        println("dos = ", dos)
+        dos_good = [-1.199999999999999956e-01 8.584885659790794099e-01;
+                    -1.000000000000000056e-01 8.741665043156163772e-01
+                    ]
+        
+        @test isapprox(dos, dos_good)
+
+    end
+
+
+    @testset "caldos" begin
+        dos2 = Periodize.calcdos2(modelvec_short)
+        println("dos2 = ", dos2)
+
+        dos2_good =  [-0.12 2.20879; -0.1 2.29901]
+        @test isapprox(dos2, dos2_good)
+
     end
 
 

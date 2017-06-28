@@ -122,4 +122,7 @@ function calc_sigmadc(modelvec::Periodize.ModelVector, beta::Float64)
     return sigmadc
 end
 
+# function calc_seebeck(...)
+# end
+
 end

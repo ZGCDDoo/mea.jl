@@ -189,7 +189,7 @@ function make_akw2cum(model::Model)
 end
 
 
-function calcintegral(modelvector::ModelVector, fct; fout_name::String="out.dat", maxevals::Int64=0)
+function calcintegral(modelvector::ModelVector, fct; fout_name::String="out.dat", maxevals::Int64=100000)
 
     len_sEvec_c = size(modelvector.sEvec_c_)[1]
     result = zeros(Float64, len_sEvec_c)
@@ -206,13 +206,13 @@ function calcintegral(modelvector::ModelVector, fct; fout_name::String="out.dat"
 end
 
 
- function calcdos(modelvector::ModelVector; fout_name::String="dos.dat", maxevals::Int64=0)
+ function calcdos(modelvector::ModelVector; fout_name::String="dos.dat", maxevals::Int64=100000)
      dos_out = calcintegral(modelvector, make_akw, fout_name=fout_name, maxevals=maxevals)
      return dos_out
  end
 
 
- function calcdos2(modelvector::ModelVector; fout_name::String="dos2.dat", maxevals::Int64=0)
+ function calcdos2(modelvector::ModelVector; fout_name::String="dos2.dat", maxevals::Int64=100000)
      dos2_out = calcintegral(modelvector, make_akw2, fout_name=fout_name, maxevals=maxevals)
      return dos2_out
  end

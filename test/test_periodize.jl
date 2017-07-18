@@ -9,7 +9,7 @@ using JSON
 
 #setup
 
-    fin_gf_to = "./data/self_ctow.dat"
+    fin_gf_to = "./data/self_ctow0.dat"
     paramsfile = "./data/statsparams0.json"
     modelvec = Periodize.buildmodelvec(fin_gf_to, paramsfile)
 

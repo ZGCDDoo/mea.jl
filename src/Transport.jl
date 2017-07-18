@@ -128,8 +128,8 @@ end
 # end
 
 
-function calc_n(modelvec::Periodize.ModelVector, beta::Float64)
-    dos = Periodize.calcdos(modelvec)
+function calc_n(modelvec::Periodize.ModelVector, beta::Float64; fout_name::String="dos.dat", maxevals::Int64=100000)
+    dos = Periodize.calcdos(modelvec, fout_name=fout_name, maxevals=maxevals)
     n = 0.0
     for jj in 1:size(dos)[1]
         ww = dos[jj, 1]
@@ -146,7 +146,7 @@ function calc_n(modelvec::Periodize.ModelVector, beta::Float64)
 end
 
 
-function coefstrans(modelvec::Periodize.ModelVector, beta::Float64, cutoff::Float64=cutoffdefault)
+function coefstrans(modelvec::Periodize.ModelVector, beta::Float64; cutoff::Float64=cutoffdefault, fout_name::String="dos.dat", maxevals::Int64=100000)
     dd = Dict{String, Float64}()
     (wvec, integrand_w) = calc_labk(modelvec, beta, cutoff=cutoff)
     dd["l11"] =  calc_l11(integrand_w, wvec, beta)
@@ -154,7 +154,7 @@ function coefstrans(modelvec::Periodize.ModelVector, beta::Float64, cutoff::Floa
     dd["l22"] = calc_l22(integrand_w, wvec, beta)
     dd["sigmadc"] = beta*dd["l11"]
     dd["seebeck"] = -beta*dd["l21"]/dd["l11"]
-    dd["n"] = calc_n(modelvec, beta)
+    dd["n"] = calc_n(modelvec, beta, fout_name=fout_name, maxevals=maxevals)
     return dd
 end
 

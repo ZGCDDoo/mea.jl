@@ -26,8 +26,8 @@ using Base.Test
 
     
     @testset "test coefstrans" begin
-        modelvec=Periodize.buildmodelvec("./data/self_ctow.dat", "./data/statsparams0.json")
-        transport = Transport.coefstrans(modelvec, beta, cutoff_test)        
+        modelvec=Periodize.buildmodelvec("./data/self_ctow0.dat", "./data/statsparams0.json")
+        transport = Transport.coefstrans(modelvec, beta, cutoff=cutoff_test, fout_name="dostest.dat", maxevals=80000)        
         @test isapprox(transport["n"], 0.495, atol=1e-3, rtol=1e-3)
         @test isapprox(transport["sigmadc"], sigmadc_good, atol=1.0e-5, rtol=1.0e-5)
         @test isapprox(transport["l11"], sigmadc_good/beta, atol=1.0e-5, rtol=1.0e-5)

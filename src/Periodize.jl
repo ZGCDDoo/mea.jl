@@ -3,6 +3,7 @@
 module Periodize
 
 using Cubature: hcubature
+using Cuba
 using JSON
 using Mea.Green
 
@@ -198,6 +199,22 @@ function calcintegral(modelvector::ModelVector, fct; fout_name::String="out.dat"
     for n in 1:len_sEvec_c
         model = Model(modelvector, n)
         result[n] = (2.0*pi)^(-2.0)*hcubature(fct(model), (-pi, -pi), (pi, pi), reltol=1.49e-8, abstol=1.49e-8, maxevals=maxevals)[1]
+    end
+
+    result_out = hcat(modelvector.wvec_, result)
+    writedlm(fout_name, result_out, " ")
+    return result_out
+end
+
+function calcintegral_cuba(modelvector::ModelVector, fct; fout_name::String="out.dat", maxevals::Int64=100000)
+    
+    len_sEvec_c = size(modelvector.sEvec_c_)[1]
+    result = zeros(Float64, len_sEvec_c)
+
+    #fct = getfield(Mea.Periodize, Symbol(fctname))
+    for n in 1:len_sEvec_c
+        model = Model(modelvector, n)
+        result[n] = (2.0*pi)^(-2.0)*divonne(fct(model), 2, 1, reltol=1.49e-8, abstol=1.49e-8, maxevals=maxevals).integral[1]
     end
 
     result_out = hcat(modelvector.wvec_, result)

@@ -9,15 +9,15 @@ using Base.Test
 
     #setup
         
-        cutoff_test = 20.0
-        beta = 12.0
-        sigmadc_good = 0.7637186262560831
-        l11_good = sigmadc_good/beta
+        # cutoff_test = 20.0
+        # beta = 12.0
+        # sigmadc_good = 0.7637186262560831
+        # l11_good = sigmadc_good/beta
 
-    # cutoff_test = 3.0
-    # beta = 12.0
-    # sigmadc_good = 0.48994580280943345
-    # l11_good = sigmadc_good/beta
+    cutoff_test = 3.0
+    beta = 12.0
+    sigmadc_good = 0.48994580280943345
+    l11_good = sigmadc_good/beta
 
     @testset "test dfdw" begin
         @test isapprox(Transport.dfdw(12.0, 0.2), -0.91506 , atol=1.0e-4)
@@ -27,13 +27,18 @@ using Base.Test
     
     @testset "test coefstrans" begin
         modelvec=Periodize.buildmodelvec("./data/self_ctow0.dat", "./data/statsparams0.json")
-        transport = Transport.coefstrans(modelvec, beta, cutoff=cutoff_test, fout_name="dostest.dat", maxevals=80000)        
-        @test isapprox(transport["n"], 0.495, atol=1e-3, rtol=1e-3)
+        transport = Transport.coefstrans(modelvec, beta, cutoff=cutoff_test, fout_name="dostest.dat", maxevals=80000)    
+        transport_cuba = Transport.coefstrans(modelvec, beta, cutoff=cutoff_test, fout_name="dostest.dat", maxevals=80000, libintegrator="Cuba")            
+        println("transport_cuba = ", transport_cuba)
+        println("transport = ", transport)
+        @test isapprox(transport["n"], 0.495, atol=1e-2, rtol=1e-2)
         @test isapprox(transport["sigmadc"], sigmadc_good, atol=1.0e-5, rtol=1.0e-5)
+        @test isapprox(transport_cuba["sigmadc"], sigmadc_good, atol=1.0e-3, rtol=1.0e-3)
         @test isapprox(transport["l11"], sigmadc_good/beta, atol=1.0e-5, rtol=1.0e-5)
-        #@test isapprox(transport["l22"], )
-        #@test isapprox(transport["l22"],)
-        #@test isapprox(transport["seebeck"],)
+        @test isapprox(transport_cuba["l11"], sigmadc_good/beta, atol=1.0e-3, rtol=1.0e-3)
+        # @test isapprox(transport["l22"], )
+        # @test isapprox(transport["l22"],)
+        # @test isapprox(transport["seebeck"],)
     end
 
 end  # testset

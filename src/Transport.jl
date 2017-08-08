@@ -17,8 +17,25 @@ function vz2_int(kk::Array{Float64 ,1}) #v_perp^2.0 integrated in z
 end
 
 
+ function make_lab_kintegrand(model::Periodize.Model)
+      function lab_kintegrand(kk::Array{Float64, 1})
+          akw2 = Periodize.make_akw2(model)
+          return(akw2(kk)*vz2_int(kk))
+      end
+       return lab_kintegrand
+  end
 
-function calc_labk(modelvec::Periodize.ModelVector, beta::Float64; cutoff::Float64=cutoffdefault) #calculate the k integral of the L_ab coeffiecient
+  function make_lab_kintegrand_cuba(model::Periodize.Model)
+    function lab_kintegrand_cuba(kk::Array{Float64, 1}, ff::Array{Float64, 1})
+        akw2 = Periodize.make_akw2(model)
+        kk_scaled = (-pi + 2*pi*kk)
+        ff[1] = (akw2(kk_scaled)*vz2_int(kk_scaled)*4.0*pi*pi)
+    end
+    return lab_kintegrand_cuba
+   end
+
+function calc_labk(modelvec::Periodize.ModelVector, beta::Float64; cutoff::Float64=cutoffdefault, maxevals::Int64=100000,
+                    libintegrator::String="Cubature") #calculate the k integral of the L_ab coeffiecient
     #returns: Array{Float64, 1} size of w_vec that will be integrated in frequency
 
   modelvec = deepcopy(modelvec)
@@ -34,14 +51,13 @@ function calc_labk(modelvec::Periodize.ModelVector, beta::Float64; cutoff::Float
   modelvec.wvec_ = modelvec.wvec_[cutoffidx:end-cutoffidx]
   modelvec.sEvec_c_ = modelvec.sEvec_c_[cutoffidx:end-cutoffidx, :, :]
 
-  function make_lab_kintegrand(model::Periodize.Model)
-      function lab_kintegrand(kk::Array{Float64, 1})
-          akw2 = Periodize.make_akw2(model)
-          return(akw2(kk)*vz2_int(kk))
-      end
+  if libintegrator == "Cubature"
+    result = Periodize.calcintegral(modelvec, make_lab_kintegrand, maxevals=maxevals)
+  elseif libintegrator == "Cuba"
+    result = Periodize.calcintegral_cuba(modelvec, make_lab_kintegrand_cuba, maxevals=maxevals)
+  else
+    error("Invalid value for libintegrator")
   end
-
-  result = Periodize.calcintegral(modelvec, make_lab_kintegrand, maxevals=100000)
 
   integrand_w = zeros(Float64, size(result)[1])
   for ii in 1:size(result)[1]
@@ -115,7 +131,7 @@ function calc_sigmadc(modelvec::Periodize.ModelVector, beta::Float64; cutoff::Fl
 
     (wvec, integrand_w) = calc_labk(modelvec, beta, cutoff=cutoff)
     sigmadc = beta*calc_l11(integrand_w, wvec,  beta)
-    println("sigmadc = ", sigmadc)
+    #println("sigmadc = ", sigmadc)
     return sigmadc
 end
 
@@ -141,14 +157,15 @@ function calc_n(modelvec::Periodize.ModelVector, beta::Float64; fout_name::Strin
        n += 0.5 * (dos[ii, 2] + dos[ii+1, 2]) * (dos[ii+1, 1] - dos[ii, 1]) / (2.0*pi)
    end
 
-   println("n = ", n)
+   #println("n = ", n)
    return n
 end
 
 
-function coefstrans(modelvec::Periodize.ModelVector, beta::Float64; cutoff::Float64=cutoffdefault, fout_name::String="dos.dat", maxevals::Int64=100000)
+function coefstrans(modelvec::Periodize.ModelVector, beta::Float64; cutoff::Float64=cutoffdefault, fout_name::String="dos.dat", maxevals::Int64=100000,
+                    libintegrator::String="Cubature")
     dd = Dict{String, Float64}()
-    (wvec, integrand_w) = calc_labk(modelvec, beta, cutoff=cutoff)
+    (wvec, integrand_w) = calc_labk(modelvec, beta, cutoff=cutoff, maxevals=maxevals, libintegrator=libintegrator)
     dd["l11"] =  calc_l11(integrand_w, wvec, beta)
     dd["l21"] = calc_l21(integrand_w, wvec, beta)
     dd["l22"] = calc_l22(integrand_w, wvec, beta)

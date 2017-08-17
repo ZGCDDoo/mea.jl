@@ -1,7 +1,9 @@
 module Transport
+using JSON
+
 
 using Mea.Periodize
-cutoffdefault=20.0
+const cutoffdefault = 20.0
 
 function dfdw(beta::Float64, ww::Float64)
     return (-beta*exp(beta*ww)/(1.0 + exp(beta*ww))^2.0   )
@@ -17,25 +19,31 @@ function vz2_int(kk::Array{Float64 ,1}) #v_perp^2.0 integrated in z
 end
 
 
- function make_lab_kintegrand(model::Periodize.Model)
-      function lab_kintegrand(kk::Array{Float64, 1})
-          akw2 = Periodize.make_akw2(model)
-          return(akw2(kk)*vz2_int(kk))
+ function make_lab_kintegrand(model::Periodize.Model; fctper::String="make_akw2green")
+    #fctper = "make_akw2green, make_akw2cum, make_akw2trace" as defined in Periodize.jl  
+    make_akw2 = getfield(Periodize, Symbol(fctper))
+    akw2 = make_akw2(model)
+
+    function lab_kintegrand(kk::Array{Float64, 1})
+          return(akw2(kk)*2.0)#vz2_int(kk))
       end
        return lab_kintegrand
   end
 
-  function make_lab_kintegrand_cuba(model::Periodize.Model)
+  function make_lab_kintegrand_cuba(model::Periodize.Model; fctper::String="make_akw2green")
+    
+    make_akw2 = getfield(Periodize, Symbol(fctper))
+    akw2 = make_akw2(model)
+    
     function lab_kintegrand_cuba(kk::Array{Float64, 1}, ff::Array{Float64, 1})
-        akw2 = Periodize.make_akw2(model)
         kk_scaled = (-pi + 2*pi*kk)
-        ff[1] = (akw2(kk_scaled)*vz2_int(kk_scaled)*4.0*pi*pi)
+        ff[1] = (4.0*pi*pi*akw2(kk_scaled)*2.0)#vz2_int(kk_scaled))
     end
     return lab_kintegrand_cuba
    end
 
 function calc_labk(modelvec::Periodize.ModelVector, beta::Float64; cutoff::Float64=cutoffdefault, maxevals::Int64=100000,
-                    libintegrator::String="Cubature") #calculate the k integral of the L_ab coeffiecient
+                    libintegrator::String="cubature", fctper::String="make_akw2green") #calculate the k integral of the L_ab coeffiecient
     #returns: Array{Float64, 1} size of w_vec that will be integrated in frequency
 
   modelvec = deepcopy(modelvec)
@@ -51,10 +59,12 @@ function calc_labk(modelvec::Periodize.ModelVector, beta::Float64; cutoff::Float
   modelvec.wvec_ = modelvec.wvec_[cutoffidx:end-cutoffidx]
   modelvec.sEvec_c_ = modelvec.sEvec_c_[cutoffidx:end-cutoffidx, :, :]
 
-  if libintegrator == "Cubature"
-    result = Periodize.calcintegral(modelvec, make_lab_kintegrand, maxevals=maxevals)
-  elseif libintegrator == "Cuba"
-    result = Periodize.calcintegral_cuba(modelvec, make_lab_kintegrand_cuba, maxevals=maxevals)
+  kwargs = Dict(:fctper=>fctper)
+  #println("kwargs... = ", kwargs...)
+  if libintegrator == "cubature"
+    result = Periodize.calcintegral(modelvec, make_lab_kintegrand, maxevals=maxevals; kwargs...)
+  elseif libintegrator == "cuba"
+    result = Periodize.calcintegral_cuba(modelvec, make_lab_kintegrand_cuba, maxevals=maxevals; kwargs...)
   else
     error("Invalid value for libintegrator")
   end
@@ -163,15 +173,26 @@ end
 
 
 function coefstrans(modelvec::Periodize.ModelVector, beta::Float64; cutoff::Float64=cutoffdefault, fout_name::String="dos.dat", maxevals::Int64=100000,
-                    libintegrator::String="Cubature")
+                    libintegrator::String="cubature", fctper::String="make_akw2green")
+    
     dd = Dict{String, Float64}()
-    (wvec, integrand_w) = calc_labk(modelvec, beta, cutoff=cutoff, maxevals=maxevals, libintegrator=libintegrator)
+    (wvec, integrand_w) = calc_labk(modelvec, beta, cutoff=cutoff, maxevals=maxevals, libintegrator=libintegrator, fctper=fctper)
     dd["l11"] =  calc_l11(integrand_w, wvec, beta)
     dd["l21"] = calc_l21(integrand_w, wvec, beta)
     dd["l22"] = calc_l22(integrand_w, wvec, beta)
     dd["sigmadc"] = beta*dd["l11"]
     dd["seebeck"] = -beta*dd["l21"]/dd["l11"]
     dd["n"] = calc_n(modelvec, beta, fout_name=fout_name, maxevals=maxevals)
+
+    fout = "coefstrans" * fctper * ".json"
+    if isfile(fout)
+        mv(fout, fout * "." *  Dates.format(now(), "YYYY-uu-HHh:MM") )
+    end
+    
+    open(fout, "w") do f
+            write(f, JSON.json(dd))
+    end
+    
     return dd
 end
 

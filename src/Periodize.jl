@@ -145,7 +145,7 @@ function periodize(arg::Array{Complex{Float64}, 2}, kx::Float64, ky::Float64)
 end
 
 
-function make_akw(model::Model)
+function make_akwgreen(model::Model)
   function akw(kk::Array{Float64, 1}) # periodize the imaginary part (Ak_w)
 
       (kx, ky) = kk
@@ -170,11 +170,21 @@ function make_akwcum(model::Model)
   return akwcum
 end
 
+function make_akwtrace(model::Model)
+    function akwtrace(kk::Array{Float64, 1}) # periodize the imaginary part (Ak_w)
+  
+        (kx, ky) = kk
+        N_c = 4.0
+        gfktilde = build_gf_ktilde(model, kk[1], kk[2])
+        return imag(-2.0*trace(gfktilde*gfktilde) )
+    end
+    return akwcum
+  end
 
 
-function make_akw2(model::Model)
+function make_akw2green(model::Model)
+    akw = make_akwgreen(model)
     function akw2(kk::Array{Float64, 1})
-        akw = make_akw(model)
         return (akw(kk)^2.0)
     end
     return akw2
@@ -182,23 +192,24 @@ end
 
 
 function make_akw2cum(model::Model)
+    akwcum = make_akwcum(model)
     function akw2cum(kk::Array{Float64, 1})
-        akwcum = make_akwcum(model)
         return (akwcum(kk)^2.0)
     end
     return akw2cum
 end
 
 
-function calcintegral(modelvector::ModelVector, fct; fout_name::String="out.dat", maxevals::Int64=100000)
+function calcintegral(modelvector::ModelVector, fct; fout_name::String="out.dat", maxevals::Int64=100000, kwargs...)
 
     len_sEvec_c = size(modelvector.sEvec_c_)[1]
     result = zeros(Float64, len_sEvec_c)
 
+    #println("in calcintegral, kwargs = ", kwargs...)
     #fct = getfield(Mea.Periodize, Symbol(fctname))
     for n in 1:len_sEvec_c
         model = Model(modelvector, n)
-        result[n] = (2.0*pi)^(-2.0)*hcubature(fct(model), (-pi, -pi), (pi, pi), reltol=1.49e-8, abstol=1.49e-8, maxevals=maxevals)[1]
+        result[n] = (2.0*pi)^(-2.0)*hcubature(fct(model; kwargs...), (-pi, -pi), (pi, pi), reltol=1.49e-8, abstol=1.49e-8, maxevals=maxevals)[1]
     end
 
     result_out = hcat(modelvector.wvec_, result)
@@ -206,7 +217,7 @@ function calcintegral(modelvector::ModelVector, fct; fout_name::String="out.dat"
     return result_out
 end
 
-function calcintegral_cuba(modelvector::ModelVector, fct; fout_name::String="out.dat", maxevals::Int64=100000)
+function calcintegral_cuba(modelvector::ModelVector, fct; fout_name::String="out.dat", maxevals::Int64=100000, kwargs...)
     
     len_sEvec_c = size(modelvector.sEvec_c_)[1]
     result = zeros(Float64, len_sEvec_c)
@@ -214,7 +225,7 @@ function calcintegral_cuba(modelvector::ModelVector, fct; fout_name::String="out
     #fct = getfield(Mea.Periodize, Symbol(fctname))
     for n in 1:len_sEvec_c
         model = Model(modelvector, n)
-        result[n] = (2.0*pi)^(-2.0)*divonne(fct(model), 2, 1, reltol=1.49e-8, abstol=1.49e-8, maxevals=maxevals).integral[1]
+        result[n] = (2.0*pi)^(-2.0)*divonne(fct(model; kwargs...), 2, 1, reltol=1.49e-8, abstol=1.49e-8, maxevals=maxevals).integral[1]
     end
 
     result_out = hcat(modelvector.wvec_, result)
@@ -224,13 +235,13 @@ end
 
 
  function calcdos(modelvector::ModelVector; fout_name::String="dos.dat", maxevals::Int64=100000)
-     dos_out = calcintegral(modelvector, make_akw, fout_name=fout_name, maxevals=maxevals)
+     dos_out = calcintegral(modelvector, make_akwgreen, fout_name=fout_name, maxevals=maxevals)
      return dos_out
  end
 
 
  function calcdos2(modelvector::ModelVector; fout_name::String="dos2.dat", maxevals::Int64=100000)
-     dos2_out = calcintegral(modelvector, make_akw2, fout_name=fout_name, maxevals=maxevals)
+     dos2_out = calcintegral(modelvector, make_akw2green, fout_name=fout_name, maxevals=maxevals)
      return dos2_out
  end
 

@@ -91,10 +91,10 @@ using JSON
         end
 
        Akw = -2.0*imag(gf_w_lattice)
-       Akw_test = Periodize.make_akw(model)(k)
+       Akw_test = Periodize.make_akwgreen(model)(k)
 
         Akw2 = (-2.0*imag(gf_w_lattice))^(2.0)
-        Akw2_test = Periodize.make_akw2(model)(k)
+        Akw2_test = Periodize.make_akw2green(model)(k)
 
         @test isapprox(Akw, Akw_test)
         @test isapprox(Akw2, Akw2_test)

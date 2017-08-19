@@ -3,6 +3,17 @@ using JSON
 
 
 using Mea.Periodize
+
+
+# maybe define an options Dict, that would be taken by almost all of the functions here for example:
+# options = Dict("fctper"=>"make_akw2green", "beta"=>12.0, "cutoff"=>100.0, "maxevals"=>100000,
+#                "libintegrator => "cubature")
+# funtion(modelvector, options)
+#or maybe just for coefstrans: coefstrans = Transport.coefstrans(modelvec, beta, options=options)
+#                                   or    = Transport.coefstrans(modelvec, beta; options...)
+# where options is now a Dict of Symbol=>value (options = Dict(Symbol("fctper")=>"make_akw2green ...))
+
+
 const cutoffdefault = 20.0
 
 function dfdw(beta::Float64, ww::Float64)
@@ -154,8 +165,9 @@ end
 # end
 
 
-function calc_n(modelvec::Periodize.ModelVector, beta::Float64; fout_name::String="dos.dat", maxevals::Int64=100000)
-    dos = Periodize.calcdos(modelvec, fout_name=fout_name, maxevals=maxevals)
+function calc_n(modelvec::Periodize.ModelVector, beta::Float64; fout_name::String="dos_n.dat",   maxevals::Int64=100000, fctper::String="make_akwgreen")
+
+    dos = Periodize.calcintegral(modelvec, getfield(Periodize, Symbol(fctper)), fout_name=fout_name, maxevals=maxevals)
     n = 0.0
     for jj in 1:size(dos)[1]
         ww = dos[jj, 1]
@@ -182,7 +194,7 @@ function coefstrans(modelvec::Periodize.ModelVector, beta::Float64; cutoff::Floa
     dd["l22"] = calc_l22(integrand_w, wvec, beta)
     dd["sigmadc"] = beta*dd["l11"]
     dd["seebeck"] = -beta*dd["l21"]/dd["l11"]
-    dd["n"] = calc_n(modelvec, beta, fout_name=fout_name, maxevals=maxevals)
+    dd["n"] = calc_n(modelvec, beta, fout_name=fout_name, maxevals=maxevals, fctper="make_akwgreen")
 
     fout = "coefstrans" * fctper * ".json"
     if isfile(fout)

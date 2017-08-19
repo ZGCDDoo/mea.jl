@@ -35,7 +35,6 @@ end
 
 
 function view_results()
-using ProfileView
 f=open("profile.bin")
 r=deserialize(f);
 ProfileView.view(r[1], lidict=r[2])

@@ -164,22 +164,11 @@ function make_akwcum(model::Model)
 
       (kx, ky) = kk
       N_c = 4.0
-      cump = periodize(model.cumulant, kk[1], kk[2])
-      return imag(-2.0*inv(inv(cump) - eps_0(kk[1], kk[2])))
+      cump = periodize(model.cumulant_, kk[1], kk[2])
+      return imag(-2.0*inv(inv(cump) - eps_0(model, kk[1], kk[2])))
   end
   return akwcum
 end
-
-function make_akwtrace(model::Model)
-    function akwtrace(kk::Array{Float64, 1}) # periodize the imaginary part (Ak_w)
-  
-        (kx, ky) = kk
-        N_c = 4.0
-        gfktilde = build_gf_ktilde(model, kk[1], kk[2])
-        return imag(-2.0*trace(gfktilde*gfktilde) )
-    end
-    return akwcum
-  end
 
 
 function make_akw2green(model::Model)
@@ -198,6 +187,18 @@ function make_akw2cum(model::Model)
     end
     return akw2cum
 end
+
+
+function make_akw2trace(model::Model)
+    function akw2trace(kk::Array{Float64, 1}) # periodize the imaginary part (Ak_w)
+        (kx, ky) = kk
+        N_c = 4.0
+        gfktilde = build_gf_ktilde(model, kk[1], kk[2])
+        return 1.0/N_c*trace(-2.0*imag(gfktilde)*-2.0*imag(gfktilde) )
+    end
+    return akw2trace
+end
+
 
 
 function calcintegral(modelvector::ModelVector, fct; fout_name::String="out.dat", maxevals::Int64=100000, kwargs...)

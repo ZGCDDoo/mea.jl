@@ -6,18 +6,18 @@ using Mea.Periodize
 
 
 # maybe define an options Dict, that would be taken by almost all of the functions here for example:
-# options = Dict("fctper"=>"make_akw2green", "beta"=>12.0, "cutoff"=>100.0, "maxevals"=>100000,
+# options = Dict("fctper"=>"make_akw2green", "beta_"=>12.0, "cutoff"=>100.0, "maxevals"=>100000,
 #                "libintegrator => "cubature")
 # funtion(modelvector, options)
-#or maybe just for coefstrans: coefstrans = Transport.coefstrans(modelvec, beta, options=options)
-#                                   or    = Transport.coefstrans(modelvec, beta; options...)
+#or maybe just for coefstrans: coefstrans = Transport.coefstrans(modelvec, beta_, options=options)
+#                                   or    = Transport.coefstrans(modelvec, beta_; options...)
 # where options is now a Dict of Symbol=>value (options = Dict(Symbol("fctper")=>"make_akw2green ...))
 
 
 const cutoffdefault = 20.0
 
-function dfdw(beta::Float64, ww::Float64)
-    return (-beta*exp(beta*ww)/(1.0 + exp(beta*ww))^2.0   )
+function dfdw(beta_::Float64, ww::Float64)
+    return (-beta_*exp(beta_*ww)/(1.0 + exp(beta_*ww))^2.0   )
 end
 
 
@@ -53,7 +53,7 @@ end
     return lab_kintegrand_cuba
    end
 
-function calc_labk(modelvec::Periodize.ModelVector, beta::Float64; cutoff::Float64=cutoffdefault, maxevals::Int64=100000,
+function calc_labk(modelvec::Periodize.ModelVector, beta_::Float64; cutoff::Float64=cutoffdefault, maxevals::Int64=100000,
                     libintegrator::String="cubature", fctper::String="make_akw2green") #calculate the k integral of the L_ab coeffiecient
     #returns: Array{Float64, 1} size of w_vec that will be integrated in frequency
 
@@ -61,7 +61,7 @@ function calc_labk(modelvec::Periodize.ModelVector, beta::Float64; cutoff::Float
   cutoff = cutoff
   cutoffidx=0
   for (ii, ww) in enumerate(modelvec.wvec_)
-    if abs(ww*beta) < cutoff
+    if abs(ww*beta_) < cutoff
       cutoffidx = ii
       break
     end
@@ -82,7 +82,7 @@ function calc_labk(modelvec::Periodize.ModelVector, beta::Float64; cutoff::Float
 
   integrand_w = zeros(Float64, size(result)[1])
   for ii in 1:size(result)[1]
-      integrand_w[ii] = -dfdw(beta, result[ii, 1])*result[ii, 2]
+      integrand_w[ii] = -dfdw(beta_, result[ii, 1])*result[ii, 2]
   end
 
 
@@ -91,7 +91,7 @@ function calc_labk(modelvec::Periodize.ModelVector, beta::Float64; cutoff::Float
 end
 
 
-function calc_l11(integrand_w::Array{Float64, 1}, wvec::Array{Float64, 1}, beta::Float64)
+function calc_l11(integrand_w::Array{Float64, 1}, wvec::Array{Float64, 1}, beta_::Float64)
 
     l11 = 0.0
     assert(size(wvec) == size(integrand_w))
@@ -101,13 +101,13 @@ function calc_l11(integrand_w::Array{Float64, 1}, wvec::Array{Float64, 1}, beta:
        l11 += 0.5 * (integrand_w[ii] + integrand_w[ii+1]) * (wvec[ii+1] - wvec[ii]) / (2.0*pi)
    end
 
-   l11 /= beta
+   l11 /= beta_
    #println(l11)
    return l11
 end
 
 
-function calc_l21(integrand_w::Array{Float64, 1}, wvec::Array{Float64, 1}, beta::Float64)
+function calc_l21(integrand_w::Array{Float64, 1}, wvec::Array{Float64, 1}, beta_::Float64)
 
     l21 = 0.0
     assert(size(wvec) == size(integrand_w))
@@ -121,13 +121,13 @@ function calc_l21(integrand_w::Array{Float64, 1}, wvec::Array{Float64, 1}, beta:
        l21 += 0.5 * (integrand_w[ii] + integrand_w[ii+1]) * (wvec[ii+1] - wvec[ii]) / (2.0*pi)
    end
 
-   l21 /= beta
+   l21 /= beta_
    #println(l21)
     return l21
 end
 
 
-function calc_l22(integrand_w::Array{Float64, 1}, wvec::Array{Float64, 1}, beta::Float64)
+function calc_l22(integrand_w::Array{Float64, 1}, wvec::Array{Float64, 1}, beta_::Float64)
 
     l22 = 0.0
     assert(size(wvec) == size(integrand_w))
@@ -141,37 +141,37 @@ function calc_l22(integrand_w::Array{Float64, 1}, wvec::Array{Float64, 1}, beta:
        l22 += 0.5 * (integrand_w[ii] + integrand_w[ii+1]) * (wvec[ii+1] - wvec[ii]) / (2.0*pi)
    end
 
-   l22 /= beta
+   l22 /= beta_
    #println(l22)
    return l22
 end
 
 
 
-function calc_sigmadc(modelvec::Periodize.ModelVector, beta::Float64; cutoff::Float64=cutoffdefault)
+function calc_sigmadc(modelvec::Periodize.ModelVector, beta_::Float64; cutoff::Float64=cutoffdefault)
 
-    (wvec, integrand_w) = calc_labk(modelvec, beta, cutoff=cutoff)
-    sigmadc = beta*calc_l11(integrand_w, wvec,  beta)
+    (wvec, integrand_w) = calc_labk(modelvec, beta_, cutoff=cutoff)
+    sigmadc = beta_*calc_l11(integrand_w, wvec,  beta_)
     #println("sigmadc = ", sigmadc)
     return sigmadc
 end
 
 
 
-# function calc_seebeck(modelvec::Periodize.ModelVector, beta::Float64; cutoff=cutoffdefault)
-#   seebeck = -beta*calc_l21(modelvec, beta, cutoff=cutoff)/calc_l11(modelvec, beta, cutoff=cutoff)
+# function calc_seebeck(modelvec::Periodize.ModelVector, beta_::Float64; cutoff=cutoffdefault)
+#   seebeck = -beta_*calc_l21(modelvec, beta_, cutoff=cutoff)/calc_l11(modelvec, beta_, cutoff=cutoff)
 #   #println("seebeck = ", seebeck)
 #   return seebeck    
 # end
 
 
-function calc_n(modelvec::Periodize.ModelVector, beta::Float64; fout_name::String="dos_n.dat",   maxevals::Int64=100000, fctper::String="make_akwgreen")
+function calc_n(modelvec::Periodize.ModelVector, beta_::Float64; fout_name::String="dos_n.dat",   maxevals::Int64=100000, fctper::String="make_akwgreen")
 
     dos = Periodize.calcintegral(modelvec, getfield(Periodize, Symbol(fctper)), fout_name=fout_name, maxevals=maxevals)
     n = 0.0
     for jj in 1:size(dos)[1]
         ww = dos[jj, 1]
-        dos[jj, 2] *= 1.0/(exp(beta*ww) + 1.0)
+        dos[jj, 2] *= 1.0/(exp(beta_*ww) + 1.0)
     end
 
    # frequency integration
@@ -184,17 +184,17 @@ function calc_n(modelvec::Periodize.ModelVector, beta::Float64; fout_name::Strin
 end
 
 
-function coefstrans(modelvec::Periodize.ModelVector, beta::Float64; cutoff::Float64=cutoffdefault, fout_name::String="dos.dat", maxevals::Int64=100000,
+function coefstrans(modelvec::Periodize.ModelVector, beta_::Float64; cutoff::Float64=cutoffdefault, fout_name::String="dos.dat", maxevals::Int64=100000,
                     libintegrator::String="cubature", fctper::String="make_akw2green")
     
     dd = Dict{String, Float64}()
-    (wvec, integrand_w) = calc_labk(modelvec, beta, cutoff=cutoff, maxevals=maxevals, libintegrator=libintegrator, fctper=fctper)
-    dd["l11"] =  calc_l11(integrand_w, wvec, beta)
-    dd["l21"] = calc_l21(integrand_w, wvec, beta)
-    dd["l22"] = calc_l22(integrand_w, wvec, beta)
-    dd["sigmadc"] = beta*dd["l11"]
-    dd["seebeck"] = -beta*dd["l21"]/dd["l11"]
-    dd["n"] = calc_n(modelvec, beta, fout_name=fout_name, maxevals=maxevals, fctper="make_akwgreen")
+    (wvec, integrand_w) = calc_labk(modelvec, beta_, cutoff=cutoff, maxevals=maxevals, libintegrator=libintegrator, fctper=fctper)
+    dd["l11"] =  calc_l11(integrand_w, wvec, beta_)
+    dd["l21"] = calc_l21(integrand_w, wvec, beta_)
+    dd["l22"] = calc_l22(integrand_w, wvec, beta_)
+    dd["sigmadc"] = beta_*dd["l11"]
+    dd["seebeck"] = -beta_*dd["l21"]/dd["l11"]
+    dd["n"] = calc_n(modelvec, beta_, fout_name=fout_name, maxevals=maxevals, fctper="make_akwgreen")
 
     fout = "coefstrans" * fctper * ".json"
     if isfile(fout)

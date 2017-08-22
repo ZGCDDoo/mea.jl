@@ -147,10 +147,8 @@ end
 
 function make_akwgreen(model::Model)
   function akw(kk::Array{Float64, 1}) # periodize the imaginary part (Ak_w)
-
-      (kx, ky) = kk
-      N_c = 4.0
-      gf_ktilde = build_gf_ktilde(model, kx, ky)
+      #N_c = 4.0
+      gf_ktilde = build_gf_ktilde(model, kk[1], kk[2])
       #expk = exp_k(kx, ky)
       #return imag(-2.0/N_c * dot(expk, (gf_ktilde * expk)) )
       return imag(-2.0*periodize(gf_ktilde, kk[1], kk[2]))
@@ -161,15 +159,19 @@ end
 
 function make_akwcum(model::Model)
   function akwcum(kk::Array{Float64, 1}) # periodize the imaginary part (Ak_w)
-
-      (kx, ky) = kk
-      N_c = 4.0
       cump = periodize(model.cumulant_, kk[1], kk[2])
       return imag(-2.0*inv(inv(cump) - eps_0(model, kk[1], kk[2])))
   end
   return akwcum
 end
 
+function make_akwtrace(model::Model)
+    function akwtrace(kk::Array{Float64, 1}) # periodize the imaginary part (Ak_w)
+        N_c = 4.0
+        return 1.0/N_c*trace(-2.0*imag(build_gf_ktilde(model, kk[1], kk[2])))
+    end
+    return akwtrace
+end
 
 function make_akw2green(model::Model)
     akw = make_akwgreen(model)
@@ -191,7 +193,6 @@ end
 
 function make_akw2trace(model::Model)
     function akw2trace(kk::Array{Float64, 1}) # periodize the imaginary part (Ak_w)
-        (kx, ky) = kk
         N_c = 4.0
         gfktilde = build_gf_ktilde(model, kk[1], kk[2])
         return 1.0/N_c*trace(-2.0*imag(gfktilde)*-2.0*imag(gfktilde) )

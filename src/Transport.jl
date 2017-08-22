@@ -194,7 +194,10 @@ function coefstrans(modelvec::Periodize.ModelVector, beta_::Float64; cutoff::Flo
     dd["l22"] = calc_l22(integrand_w, wvec, beta_)
     dd["sigmadc"] = beta_*dd["l11"]
     dd["seebeck"] = -beta_*dd["l21"]/dd["l11"]
-    dd["n"] = calc_n(modelvec, beta_, fout_name=fout_name, maxevals=maxevals, fctper="make_akwgreen")
+    
+    ss = split(fctper, "2")
+    fctdos = ss[1] * ss[2] # fctper = make_akw2green -> fctdos = make_akwgreen
+    dd["n"] = calc_n(modelvec, beta_, fout_name=fout_name, maxevals=maxevals, fctper=fctdos)
 
     fout = "coefstrans" * fctper * ".json"
     if isfile(fout)

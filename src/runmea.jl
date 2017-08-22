@@ -35,7 +35,8 @@ try
 	println("coefs_trace = ", coefs_trace)
 	println("coefs_cum = ", coefs_cum)
 
-catch
+catch exc
+	println("caught exception: $exc")
 end
 
 end
